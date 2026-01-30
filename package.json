@@ -1,0 +1,26 @@
+{
+  "name": "wopr-plugin-voice-chatterbox",
+  "version": "1.0.0",
+  "description": "WOPR TTS plugin for Chatterbox (OpenAI-compatible)",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "wopr",
+    "plugin",
+    "tts",
+    "chatterbox",
+    "voice",
+    "speech"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^25.1.0",
+    "typescript": "^5.3.0"
+  }
+}
