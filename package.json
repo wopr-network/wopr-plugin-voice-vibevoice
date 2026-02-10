@@ -1,13 +1,10 @@
 {
-  "name": "wopr-plugin-voice-chatterbox",
-  "version": "1.0.0",
+  "author": "",
   "description": "WOPR TTS plugin for Chatterbox (OpenAI-compatible)",
-  "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "scripts": {
-    "build": "tsc",
-    "clean": "rm -rf dist"
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.14",
+    "@types/node": "^25.1.0",
+    "typescript": "^5.3.0"
   },
   "keywords": [
     "wopr",
@@ -17,10 +14,18 @@
     "voice",
     "speech"
   ],
-  "author": "",
   "license": "MIT",
-  "devDependencies": {
-    "@types/node": "^25.1.0",
-    "typescript": "^5.3.0"
-  }
+  "main": "dist/index.js",
+  "name": "wopr-plugin-voice-chatterbox",
+  "scripts": {
+    "build": "tsc",
+    "check": "biome check src/ && tsc --noEmit",
+    "clean": "rm -rf dist",
+    "format": "biome format --write src/",
+    "lint": "biome check src/",
+    "lint:fix": "biome check --fix src/"
+  },
+  "type": "module",
+  "types": "dist/index.d.ts",
+  "version": "1.0.0"
 }
