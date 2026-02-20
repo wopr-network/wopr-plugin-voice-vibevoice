@@ -30,5 +30,24 @@
   },
   "type": "module",
   "types": "dist/index.d.ts",
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "wopr": {
+    "plugin": {
+      "category": "voice",
+      "description": "Microsoft VibeVoice TTS (requires 16GB+ VRAM)",
+      "install": [
+        {
+          "image": "valyriantech/vibevoice_server",
+          "kind": "docker",
+          "label": "Pull VibeVoice server",
+          "tag": "latest"
+        }
+      ],
+      "name": "voice-vibevoice",
+      "requires": {
+        "docker": ["valyriantech/vibevoice_server:latest"]
+      },
+      "type": "tts"
+    }
+  }
 }
