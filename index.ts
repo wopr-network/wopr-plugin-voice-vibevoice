@@ -48,7 +48,15 @@ interface TTSProvider {
 	validateConfig(): void;
 }
 
+interface WOPRPluginManifest {
+	name: string;
+	version: string;
+	description: string;
+	capabilities?: string[];
+}
+
 interface WOPRPlugin {
+	manifest: WOPRPluginManifest;
 	name: string;
 	version: string;
 	description?: string;
@@ -65,10 +73,13 @@ interface WOPRPluginContext {
 	};
 	getConfig: <T>() => T;
 	registerExtension: (type: string, provider: unknown) => void;
+	unregisterExtension: (type: string) => void;
 	registerCapabilityProvider: (
 		type: string,
 		descriptor: { id: string; name: string },
 	) => void;
+	registerConfigSchema: (id: string, schema: unknown) => void;
+	unregisterConfigSchema: (id: string) => void;
 }
 
 // VibeVoice-specific config
@@ -259,7 +270,7 @@ class VibeVoiceProvider implements TTSProvider {
 					method: "GET",
 					signal: AbortSignal.timeout(5000),
 				});
-				return response.ok || response.status === 404;
+				return response.status !== 404;
 			} catch {
 				return false;
 			}
@@ -271,16 +282,58 @@ class VibeVoiceProvider implements TTSProvider {
 	}
 }
 
+let pluginCtx: WOPRPluginContext | null = null;
 let provider: VibeVoiceProvider | null = null;
+const cleanups: Array<() => void> = [];
 
 const plugin: WOPRPlugin = {
+	manifest: {
+		name: "voice-vibevoice",
+		version: "1.0.0",
+		description: "High-quality TTS via Microsoft VibeVoice (OpenAI-compatible)",
+		capabilities: ["tts"],
+	},
 	name: "voice-vibevoice",
 	version: "1.0.0",
 	description: "High-quality TTS via Microsoft VibeVoice",
 
 	async init(ctx: WOPRPluginContext) {
+		pluginCtx = ctx;
 		const config = ctx.getConfig<VibeVoiceConfig>();
 		provider = new VibeVoiceProvider(config);
+
+		ctx.registerConfigSchema("voice-vibevoice", {
+			title: "VibeVoice TTS Configuration",
+			description: "Configure the VibeVoice TTS server connection",
+			fields: [
+				{
+					name: "serverUrl",
+					type: "text",
+					label: "Server URL",
+					placeholder: "http://vibevoice-tts:8080",
+					default: "http://vibevoice-tts:8080",
+					description: "URL of your VibeVoice server",
+				},
+				{
+					name: "voice",
+					type: "text",
+					label: "Default Voice",
+					placeholder: "alloy",
+					default: "alloy",
+					description:
+						"Default voice ID (e.g. alloy, echo, fable, onyx, nova, shimmer)",
+				},
+				{
+					name: "speed",
+					type: "text",
+					label: "Speed",
+					placeholder: "1.0",
+					default: "1.0",
+					description: "Playback speed multiplier (0.8-1.2)",
+				},
+			],
+		});
+		cleanups.push(() => pluginCtx?.unregisterConfigSchema("voice-vibevoice"));
 
 		try {
 			provider.validateConfig();
@@ -288,6 +341,7 @@ const plugin: WOPRPlugin = {
 			if (healthy) {
 				await provider.fetchVoices();
 				ctx.registerExtension("tts", provider);
+				cleanups.push(() => pluginCtx?.unregisterExtension("tts"));
 				ctx.registerCapabilityProvider("tts", {
 					id: provider.metadata.name,
 					name: provider.metadata.description || provider.metadata.name,
@@ -296,16 +350,25 @@ const plugin: WOPRPlugin = {
 			} else {
 				ctx.log.warn(`VibeVoice server not reachable at ${provider.serverUrl}`);
 			}
-		} catch (err) {
+		} catch (err: unknown) {
 			ctx.log.error(`Failed to init VibeVoice TTS: ${err}`);
 		}
 	},
 
 	async shutdown() {
+		for (const cleanup of cleanups.reverse()) {
+			try {
+				cleanup();
+			} catch {
+				// Ignore cleanup errors during shutdown
+			}
+		}
+		cleanups.length = 0;
 		if (provider) {
 			await provider.shutdown();
 			provider = null;
 		}
+		pluginCtx = null;
 	},
 };
 
