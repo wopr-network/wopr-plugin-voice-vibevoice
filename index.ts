@@ -165,7 +165,6 @@ class VibeVoiceProvider implements TTSProvider {
 	readonly voices: Voice[] = [...BUILTIN_VOICES];
 
 	private config: Required<VibeVoiceConfig>;
-	private dynamicVoices: Voice[] = [];
 
 	constructor(config: VibeVoiceConfig = {}) {
 		this.config = { ...DEFAULT_CONFIG, ...config };
@@ -179,39 +178,6 @@ class VibeVoiceProvider implements TTSProvider {
 		if (!this.config.serverUrl) {
 			throw new Error("serverUrl is required");
 		}
-	}
-
-	/**
-	 * Fetch available voices from the server
-	 */
-	async fetchVoices(): Promise<void> {
-		try {
-			const response = await fetch(`${this.config.serverUrl}/v1/audio/voices`, {
-				method: "GET",
-				signal: AbortSignal.timeout(5000),
-			});
-
-			if (response.ok) {
-				const data = await response.json();
-				// OpenAI-compatible format: { voices: [...] } or bare array
-				const voiceList = Array.isArray(data) ? data : data.voices;
-				if (Array.isArray(voiceList)) {
-					this.dynamicVoices = voiceList.map((v: Record<string, unknown>) => ({
-						id: (v.voice_id || v.id || v.name || v) as string,
-						name: (v.name || v.voice_id || v.id || v) as string,
-						language: (v.language as string) || "en",
-						gender: (v.gender as "male" | "female" | "neutral") || "neutral",
-						description: v.description as string | undefined,
-					}));
-				}
-			}
-		} catch {
-			// Voice fetch failed, use built-in defaults
-		}
-	}
-
-	get allVoices(): Voice[] {
-		return this.dynamicVoices.length > 0 ? this.dynamicVoices : this.voices;
 	}
 
 	async synthesize(
@@ -264,14 +230,14 @@ class VibeVoiceProvider implements TTSProvider {
 				signal: AbortSignal.timeout(5000),
 			});
 			return response.ok;
-		} catch {
+		} catch (_err: unknown) {
 			try {
 				const response = await fetch(this.config.serverUrl, {
 					method: "GET",
 					signal: AbortSignal.timeout(5000),
 				});
 				return response.status !== 404;
-			} catch {
+			} catch (_err: unknown) {
 				return false;
 			}
 		}
@@ -339,7 +305,6 @@ const plugin: WOPRPlugin = {
 			provider.validateConfig();
 			const healthy = await provider.healthCheck();
 			if (healthy) {
-				await provider.fetchVoices();
 				ctx.registerExtension("tts", provider);
 				cleanups.push(() => pluginCtx?.unregisterExtension("tts"));
 				ctx.registerCapabilityProvider("tts", {
@@ -359,7 +324,7 @@ const plugin: WOPRPlugin = {
 		for (const cleanup of cleanups.reverse()) {
 			try {
 				cleanup();
-			} catch {
+			} catch (_err: unknown) {
 				// Ignore cleanup errors during shutdown
 			}
 		}
