@@ -7,7 +7,8 @@
  * Docker: marhensa/vibevoice-realtime-openai-api
  */
 
-// Inline types from WOPR (copied from wopr-plugin-voice-chatterbox)
+import type { WOPRPlugin, WOPRPluginContext } from "@wopr-network/plugin-types";
+
 interface TTSSynthesisResult {
 	audio: Buffer;
 	format: "pcm_s16le" | "mp3" | "wav" | "opus";
@@ -48,39 +49,6 @@ interface TTSProvider {
 	validateConfig(): void;
 }
 
-interface WOPRPluginManifest {
-	name: string;
-	version: string;
-	description: string;
-	capabilities?: string[];
-}
-
-interface WOPRPlugin {
-	manifest: WOPRPluginManifest;
-	name: string;
-	version: string;
-	description?: string;
-	init?: (ctx: WOPRPluginContext) => Promise<void>;
-	shutdown?: () => Promise<void>;
-}
-
-interface WOPRPluginContext {
-	log: {
-		info: (msg: string) => void;
-		error: (msg: string) => void;
-		warn: (msg: string) => void;
-		debug: (msg: string) => void;
-	};
-	getConfig: <T>() => T;
-	registerExtension: (type: string, provider: unknown) => void;
-	unregisterExtension: (type: string) => void;
-	registerCapabilityProvider: (
-		type: string,
-		descriptor: { id: string; name: string },
-	) => void;
-	registerConfigSchema: (id: string, schema: unknown) => void;
-	unregisterConfigSchema: (id: string) => void;
-}
 
 // VibeVoice-specific config
 interface VibeVoiceConfig {
