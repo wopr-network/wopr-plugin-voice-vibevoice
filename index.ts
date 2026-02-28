@@ -49,7 +49,6 @@ interface TTSProvider {
 	validateConfig(): void;
 }
 
-
 // VibeVoice-specific config
 interface VibeVoiceConfig {
 	/** Server URL (e.g., http://vibevoice-tts:8080) */
